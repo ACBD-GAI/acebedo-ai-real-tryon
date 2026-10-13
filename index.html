@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#15372f">
+<title>Acebedo Optical | AI Realistic Try-On</title>
+<style>
+:root{--ink:#162b26;--muted:#64736e;--green:#173f34;--cream:#f8f7f1;--line:#e2e7e2;--white:#fff;--gold:#c6a66a;--danger:#a52f2f}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input{font:inherit}.wrap{max-width:820px;margin:0 auto;padding:20px 16px 36px}.brand{display:flex;align-items:center;gap:12px;margin:8px 0 22px}.logo{width:46px;height:46px;border-radius:14px;background:var(--green);color:#fff;display:grid;place-items:center;font-size:25px}.brand small{display:block;font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--muted)}h1{font-size:clamp(25px,6vw,38px);line-height:1.07;margin:8px 0 10px;letter-spacing:-.04em}.intro{color:var(--muted);line-height:1.55;margin:0 0 22px;max-width:640px}.panel{background:var(--white);border:1px solid var(--line);border-radius:22px;padding:16px;box-shadow:0 8px 25px #162b260a}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{border:0;border-radius:13px;padding:14px 12px;font-weight:750;cursor:pointer;min-height:50px}.btn.primary{background:var(--green);color:#fff}.btn.secondary{background:#edf2ee;color:var(--green);border:1px solid #dbe4dd}.btn:disabled{opacity:.55;cursor:not-allowed}.hidden{display:none!important}.help{font-size:12px;color:var(--muted);line-height:1.5;margin:12px 2px 0}.preview{margin-top:16px;display:none}.preview img{display:block;width:100%;max-height:65vh;object-fit:contain;background:#f1f2ee;border-radius:16px}.status{display:none;margin-top:16px;padding:13px;border-radius:12px;background:#edf2ee;color:var(--green);font-size:14px;line-height:1.5}.status.error{background:#fff0f0;color:var(--danger)}.spinner{width:17px;height:17px;border-radius:50%;border:2px solid #ffffff70;border-top-color:#fff;display:inline-block;animation:spin .8s linear infinite;vertical-align:-3px;margin-right:8px}@keyframes spin{to{transform:rotate(360deg)}}.recommendation{margin-top:14px;padding:15px;border:1px solid var(--line);border-radius:14px;display:none;line-height:1.5;font-size:14px}.recommendation strong{display:block;margin-bottom:5px}.result-actions{display:flex;gap:10px;margin-top:12px}.result-actions .btn{flex:1}.privacy{font-size:11px;line-height:1.5;color:var(--muted);margin:16px 2px 0}.footer{font-size:11px;color:#7d8984;text-align:center;margin:22px 0 4px}.consent{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.5}.consent label{display:flex;align-items:flex-start;gap:8px}.consent input{margin-top:3px;flex:none}@media(max-width:420px){.wrap{padding:14px 12px 26px}.panel{padding:13px;border-radius:18px}.btn{font-size:14px;padding:12px 8px}.brand{margin-bottom:19px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="brand"><div class="logo" aria-hidden="true">◉</div><div><small>ACEBEDO OPTICAL</small><div style="font-weight:800;letter-spacing:-.02em">AI Style Advisor</div></div></header>
+  <h1>See yourself in real-looking glasses.</h1>
+  <p class="intro">Take a selfie or upload a photo. AI will choose a frame style and lens tint that suit your visible features, then edit your photo to show a realistic try-on.</p>
+  <section class="panel" aria-label="Photo try-on">
+    <div class="actions">
+      <button id="takeBtn" class="btn primary" type="button">📷 Take a selfie</button>
+      <button id="uploadBtn" class="btn secondary" type="button">＋ Upload photo</button>
+    </div>
+    <input id="cameraInput" class="hidden" type="file" accept="image/*" capture="user">
+    <input id="uploadInput" class="hidden" type="file" accept="image/*">
+    <p class="help">Best results: face the camera, remove existing glasses, look straight ahead, and use even lighting. Keep your full face and both eyes visible.</p>
+    <div class="consent"><label><input type="checkbox" id="consent"><span>I agree to send this photo to the AI service to create the try-on image. The app itself does not save the photo.</span></label></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div id="preview" class="preview"><img id="previewImg" alt="Your photo or AI try-on result"><div id="recommendation" class="recommendation"></div><div id="resultActions" class="result-actions hidden"><button id="againBtn" class="btn secondary" type="button">Try another photo</button><button id="saveBtn" class="btn primary" type="button">Save result</button></div></div>
+    <p class="privacy">Privacy note: the photo is sent to Google's Gemini image-generation service for processing. Use only a photo you have permission to share. AI results are style previews, not a guarantee of exact frame dimensions, prescription suitability, or the color of a physical lens.</p>
+  </section>
+  <div class="footer">A separate prototype for Acebedo Optical · Not connected to the Scanner or Dashboard</div>
+</main>
+<script>
+const cameraInput=document.getElementById('cameraInput');
+const uploadInput=document.getElementById('uploadInput');
+const takeBtn=document.getElementById('takeBtn');
+const uploadBtn=document.getElementById('uploadBtn');
+const consent=document.getElementById('consent');
+const statusBox=document.getElementById('status');
+const preview=document.getElementById('preview');
+const previewImg=document.getElementById('previewImg');
+const recommendation=document.getElementById('recommendation');
+const resultActions=document.getElementById('resultActions');
+const againBtn=document.getElementById('againBtn');
+const saveBtn=document.getElementById('saveBtn');
+let currentResultUrl='';
+let busy=false;
+
+takeBtn.addEventListener('click',()=>cameraInput.click());
+uploadBtn.addEventListener('click',()=>uploadInput.click());
+againBtn.addEventListener('click',resetUI);
+cameraInput.addEventListener('change',()=>handlePhoto(cameraInput.files&&cameraInput.files[0]));
+uploadInput.addEventListener('change',()=>handlePhoto(uploadInput.files&&uploadInput.files[0]));
+saveBtn.addEventListener('click',()=>{if(!currentResultUrl)return;const a=document.createElement('a');a.href=currentResultUrl;a.download='acebedo-ai-try-on.png';document.body.appendChild(a);a.click();a.remove();});
+
+function showStatus(message,isError=false){statusBox.textContent=message;statusBox.className='status'+(isError?' error':'');statusBox.style.display='block';}
+function setBusy(value){busy=value;takeBtn.disabled=value;uploadBtn.disabled=value;againBtn.disabled=value;}
+function resetUI(){if(busy)return;cameraInput.value='';uploadInput.value='';preview.style.display='none';statusBox.style.display='none';recommendation.style.display='none';resultActions.classList.add('hidden');currentResultUrl='';previewImg.removeAttribute('src');}
+async function handlePhoto(file){
+  if(!file)return;
+  if(busy)return;
+  if(!file.type||!file.type.startsWith('image/')){showStatus('Please choose an image file.',true);return;}
+  if(!consent.checked){showStatus('Please check the consent box before processing your photo.',true);return;}
+  resetUI();
+  setBusy(true);
+  preview.style.display='block';
+  try{
+    showStatus('Preparing your photo…');
+    const compressed=await compressImage(file,1280,0.84);
+    previewImg.src=compressed.dataUrl;
+    showStatus('AI is choosing a suitable frame and creating your realistic try-on. This may take a little while.');
+    takeBtn.innerHTML='<span class="spinner"></span>Creating…';
+    const response=await fetch('/api/tryon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageData:compressed.base64,mimeType:'image/jpeg'})});
+    const payload=await response.json().catch(()=>({error:'The server returned an unreadable response.'}));
+    if(!response.ok)throw new Error(payload.error||'The AI service could not create the image.');
+    if(!payload.imageData)throw new Error('The AI service did not return an image. Please try again with a clearer front-facing photo.');
+    currentResultUrl='data:'+(payload.mimeType||'image/png')+';base64,'+payload.imageData;
+    previewImg.src=currentResultUrl;
+    previewImg.alt='AI-generated realistic eyeglasses try-on result';
+    if(payload.recommendation){recommendation.textContent=payload.recommendation;recommendation.style.display='block';}
+    else {recommendation.textContent='AI-selected frame and lens tint preview. Frame color and tint are recommendations, not a prescription or lens specification.';recommendation.style.display='block';}
+    resultActions.classList.remove('hidden');
+    showStatus('Your AI try-on is ready.');
+  }catch(err){
+    showStatus(friendlyError(err),true);
+    resultActions.classList.add('hidden');
+  }finally{
+    setBusy(false);takeBtn.textContent='📷 Take a selfie';uploadBtn.textContent='＋ Upload photo';cameraInput.value='';uploadInput.value='';
+  }
+}
+function friendlyError(err){const m=String(err&&err.message||err||'Unknown error');if(m.includes('GEMINI_API_KEY'))return 'The website needs its Gemini API key configured in Vercel. This is a one-time setup by the site owner.';if(m.includes('429')||m.toLowerCase().includes('quota'))return 'The AI service has reached its current usage limit. Check the Gemini API quota or billing settings, then try again.';if(m.toLowerCase().includes('failed to fetch'))return 'Could not reach the website service. Check your internet connection and try again.';return m;}
+async function compressImage(file,maxSide,quality){
+  let bitmap;
+  try{bitmap=await createImageBitmap(file);}catch{bitmap=await loadAsBitmap(file);}
+  const ratio=Math.min(1,maxSide/Math.max(bitmap.width,bitmap.height));
+  const w=Math.max(1,Math.round(bitmap.width*ratio)),h=Math.max(1,Math.round(bitmap.height*ratio));
+  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+  const ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(bitmap,0,0,w,h);if(bitmap.close)bitmap.close();
+  const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not prepare the image.')),'image/jpeg',quality));
+  const dataUrl=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('Could not read the photo.'));r.readAsDataURL(blob);});
+  return {dataUrl,base64:String(dataUrl).split(',')[1]};
+}
+function loadAsBitmap(file){return new Promise((resolve,reject)=>{const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{URL.revokeObjectURL(url);const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;const ctx=c.getContext('2d');ctx.drawImage(img,0,0);c.toBlob(blob=>{if(!blob)return reject(new Error('Unsupported photo format. Please try a JPG or PNG photo.'));createImageBitmap(blob).then(resolve,reject);},'image/jpeg',0.92);};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Cannot open that photo. Please use JPG or PNG.'));};img.src=url;});}
+</script>
+</body>
+</html>
