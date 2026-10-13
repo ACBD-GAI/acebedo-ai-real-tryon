@@ -41,7 +41,7 @@ export default async function handler(req, res) {
           { type: 'image', mime_type: safeMime, data: imageData },
           { type: 'text', text: prompt }
         ],
-        response_format: [ { type: 'text' }, { type: 'image' } ]
+        
       })
     });
 
